@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+Debug
+Static Library Debug
+Static Library Release
+Release
+.settings
+.vscode
+.pydevproject
+.cproject
+.project
