@@ -92,7 +92,7 @@ public:
 		_tests().push_back(tc);
 	}
 
-	static void run_tests() {
+	static int run_tests() {
 		for (std::vector<test_case>::iterator it = _tests().begin(), end = _tests().end();
 				it != end; it++) {
 			std::cout << "Running test case " << it->name << std::endl;
@@ -129,6 +129,7 @@ public:
 			std::cout << "Successes: " << success_count << std::endl;
 			std::cout << "Failures: " << failed_count << std::endl;
 			std::cout << std::endl;
+			return failed_count;
 		}
 	}
 };

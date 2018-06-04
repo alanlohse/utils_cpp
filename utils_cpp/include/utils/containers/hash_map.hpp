@@ -253,6 +253,21 @@ private:
 		return _node->value;
 	}
 
+	template<typename _K2, typename _V2, class _Hash2, class _Equal2, class _Alloc2, class _Mutex2>
+	void _assign(hashmap<_K2, _V2, _Hash2, _Equal2, _Alloc2, _Mutex2>& o) {
+		mutex.lock();
+		o.mutex.lock();
+		clear();
+		typename hashmap<_K2, _V2, _Hash2, _Equal2, _Alloc2, _Mutex2>::iterator it = o.begin();
+		typename hashmap<_K2, _V2, _Hash2, _Equal2, _Alloc2, _Mutex2>::iterator end = o.end();
+		for (; it != end; ++it)
+			insert(*it);
+		mutex.unlock();
+		o.mutex.unlock();
+		return *this;
+	}
+
+
 public:
 	hashmap(size_type n = 37, const hasher& hsh = hasher(), const key_equal& ke = key_equal()) :
 		node_allocator(),
@@ -265,6 +280,21 @@ public:
 		_key_equal(ke), mutex() {
 		_buckets = bucket_allocator.allocate(n);
 		::memset(_buckets,0,sizeof(_node_type*)*n);
+	}
+
+	template<typename _K2, typename _V2, class _Hash2, class _Equal2, class _Alloc2, class _Mutex2>
+	hashmap(hashmap<_K2, _V2, _Hash2, _Equal2, _Alloc2, _Mutex2>& o) :
+		node_allocator(),
+		bucket_allocator(),
+		_buckets(0),
+		_buck_count(o.size()),
+		_count(0),
+		_max_load_factor(0.75f),
+		_hasher(o._hasher),
+		_key_equal(o._key_equal), mutex() {
+		_buckets = bucket_allocator.allocate(o.size());
+		::memset(_buckets,0,sizeof(_node_type*)*o.size());
+		_assign(o);
 	}
 
 	~hashmap() {
@@ -479,6 +509,12 @@ public:
 		utils::swap(_key_equal,o._key_equal);
 		mutex.unlock();
 		o.mutex.unlock();
+	}
+
+	template<typename _K2, typename _V2, class _Hash2, class _Equal2, class _Alloc2, class _Mutex2>
+	hashmap& operator = (hashmap<_K2, _V2, _Hash2, _Equal2, _Alloc2, _Mutex2>& o) {
+		_assign(o);
+		return *this;
 	}
 
 	template<class _Predicate>

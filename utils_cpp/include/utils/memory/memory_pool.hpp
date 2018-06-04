@@ -336,6 +336,10 @@ public:
 		__p->~_Tp();
 	}
 
+	pooled_allocator& operator = (const pooled_allocator& other) const {
+		return *this;
+	}
+
 };
 
 template<typename _Tp,  typename _MutexT, typename _GrowthPolicyT, typename _MallocT>

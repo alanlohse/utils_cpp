@@ -36,3 +36,4 @@ void test1() {
 	a&=0x3;
 	cout << a.get() << endl;*/
 }
+

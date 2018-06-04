@@ -47,12 +47,11 @@ int main(int argc, char **argv) {
 //	ftest fc;
 //	utils::thread tb(fc);
 //	tb.start();
-	cout << "Starting tests" << endl;
-	utils::test::TestSuit::run_tests();
 	test_memory_pool();
 	test_memory_pool();
 
 //	cout << "Wating for other thread." << endl;
 //	tb.join();
+	cout << "Starting tests" << endl;
+	return utils::test::TestSuit::run_tests();
 }
-
