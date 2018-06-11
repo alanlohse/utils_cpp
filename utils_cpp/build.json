@@ -1,48 +1,46 @@
 {
-    name : 'utils_cpp',
+    name: 'utils_cpp',
     description: 'A simple hello world executable',
-    author:'Alan N. Lohse',
-    source : 'https://github.com/alanlohse/utils_cpp',
+    author: 'Alan N. Lohse',
+    source: 'https://github.com/alanlohse/utils_cpp',
     version: '0.1.0',
-    type : 'static library',
-    dependencies : [
-    ],
-    includeDirs : ['./include'],
-    sources:['./src/*.cpp'],
-    testSources:['test_src/*.cpp'],
-    targets : [
-        {
-            name:'Debug',
+    type: 'static library',
+    dependencies: [],
+    includeDirs: ['./include'],
+    sources: ['./src/*.cpp'],
+    testSources: ['test_src/*.cpp'],
+    targets: [{
+            name: 'Debug',
             arch: 'x64',
             platform: 'win32',
             toolchain: 'gcc',
-            includeDirs : [],
-            sources:['./windows/*.cpp'],
-            options: {optimization : 0, debug : 3, warnings : 'all', other :''},
-            defines:{
-                'DEBUG' : ''
+            includeDirs: [],
+            sources: ['./windows/*.cpp'],
+            options: { optimization: 0, debug: 3, warnings: 'all', other: ' --std=c++14' },
+            defines: {
+                'DEBUG': ''
             },
-            libraryPaths : [],
-            libraries : ['ws2_32'],
-            linkoptions : {}
+            libraryPaths: [],
+            libraries: ['ws2_32'],
+            linkoptions: {}
         },
         {
-            name:'Release',
+            name: 'Release',
             arch: 'x64',
             platform: 'win32',
             toolchain: 'msvc14',
-            includeDirs : [],
-            sources:['./windows/*.cpp'],
-            options: {optimization : 3, debug : 0, warnings : 'all', other :''},
-            defines:{},
-            libraryPaths : [],
-            libraries : ['ws2_32'],
-            linkoptions : {debugInformation : false}
+            includeDirs: [],
+            sources: ['./windows/*.cpp'],
+            options: { optimization: 3, debug: 0, warnings: 'all', other: '' },
+            defines: {},
+            libraryPaths: [],
+            libraries: ['ws2_32'],
+            linkoptions: { debugInformation: false }
         }
     ],
-    package : {
-        name : 'utils_cpp',
-        includes :['./include'],
-        other:[]
+    package: {
+        name: 'utils_cpp',
+        includes: ['./include'],
+        other: []
     }
 }
