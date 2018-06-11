@@ -92,6 +92,9 @@ public: \
 		return value; \
 	}
 
+#define MAKE_ENUMERATION2(name) MAKE_ENUMERATION(name) \
+	static const name
+
 #define MAKE_CONSTANT(type,name,init_value) static const type name = init_value
 
 #define DECLARE_CONSTANT(type,name) static const type name
