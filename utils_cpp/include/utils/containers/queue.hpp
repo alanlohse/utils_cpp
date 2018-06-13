@@ -33,7 +33,7 @@ protected:
 		_queue_node() : value(), next(0) { }
 	};
 
-	typedef typename _Alloc::template rebind<_queue_node<_T> >::other node_allocator_type;
+	typedef typename _Alloc::template rebind<_queue_node>::other node_allocator_type;
 
 	_queue_node* _first;
 	_queue_node* _last;

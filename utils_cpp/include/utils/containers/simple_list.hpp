@@ -114,6 +114,10 @@ struct const_fwdlist_iterator {
 	pointer operator -> () const {
 		return &node->value;
 	}
+	iterator& operator = (const iterator& __it) {
+		node = __it.node;
+		return *this;
+	}
 	iterator& operator ++ () {
 		if (!node)
 			throw boundary_exceeded_exception();
@@ -160,14 +164,15 @@ struct const_fwdlist_iterator {
 
 };
 
-template<typename _Tp, class _Alloc = DEFAULT_ALLOCATOR<_Tp> >
+template<typename _Tp, class _Alloc = DEFAULT_ALLOCATOR<_Tp>,
+		class _Mutex = utils::null_mutex>
 class fwdlist {
 public:
 	typedef size_t size_type;
 	typedef simple_fwdlist_node<_Tp> node_type;
 	typedef _Tp value_type;
-	typedef _Alloc allocator_type;
-	typedef typename allocator_type::template rebind<node_type>::other allocator_node_type;
+	typedef typename _Alloc::template rebind<value_type>::other allocator_type;
+	typedef typename _Alloc::template rebind<node_type>::other allocator_node_type;
 	typedef fwdlist_iterator<_Tp> iterator;
 	typedef const_fwdlist_iterator<_Tp> const_iterator;
     typedef typename allocator_type::pointer                   pointer;
@@ -175,11 +180,13 @@ public:
     typedef typename allocator_type::reference                 reference;
     typedef typename allocator_type::const_reference           const_reference;
     typedef ptrdiff_t					 difference_type;
+	typedef _Mutex mutex_type;
 private:
     node_type* _first_node;
     node_type* _last_node;
     allocator_type _allocator;
     allocator_node_type _node_allocator;
+	mutex_type mutex;
     void remove_node(node_type* prev, node_type* node) {
     	prev->next = node->next;
 		_node_allocator.deallocate(node,1);
@@ -188,12 +195,12 @@ private:
     }
 
 public:
-    fwdlist() : _first_node(NULL), _last_node(NULL), _allocator(), _node_allocator() { }
-    fwdlist(const fwdlist& other) : _first_node(NULL), _last_node(NULL), _allocator(), _node_allocator() {
+    fwdlist() : _first_node(NULL), _last_node(NULL), _allocator(), _node_allocator(), mutex() { }
+    fwdlist(const fwdlist& other) : _first_node(NULL), _last_node(NULL), _allocator(), _node_allocator(), mutex() {
     	assign(other.begin(),other.end());
     }
     template <class InputIterator>
-    fwdlist(InputIterator first, InputIterator last) : _first_node(NULL), _last_node(NULL), _allocator(), _node_allocator() {
+    fwdlist(InputIterator first, InputIterator last) : _first_node(NULL), _last_node(NULL), _allocator(), _node_allocator(), mutex() {
     	assign(first,last);
     }
     ~fwdlist() {
@@ -207,14 +214,17 @@ public:
     }
 
     void push_front(const _Tp& v) {
+		mutex.lock();
 		node_type* next = _first_node;
 		_first_node = _node_allocator.allocate(1,NULL);
 		_node_allocator.construct(_first_node,node_type(v,next));
 		if (_last_node == NULL)
 			_last_node = _first_node;
+		mutex.unlock();
     }
 
     void push_back(const _Tp& v) {
+		mutex.lock();
 		node_type* prev = _last_node;
 		_last_node = _node_allocator.allocate(1,NULL);
 		_node_allocator.construct(_last_node,node_type(v));
@@ -222,15 +232,18 @@ public:
 			prev->next = _last_node;
 		if (_first_node == NULL)
 			_first_node = _last_node;
+		mutex.unlock();
     }
 
     void pop_front() {
     	if (_first_node) {
+    		mutex.lock();
     		node_type* node = _first_node->next;
     		_node_allocator.deallocate(_first_node,1);
     		_first_node = node;
     		if (_first_node == NULL)
     			_last_node = NULL;
+    		mutex.unlock();
     	}
     }
 
@@ -238,15 +251,18 @@ public:
     	if (_last_node == _first_node) {
     		pop_front();
     	} else if (_last_node) {
+    		mutex.lock();
     		node_type* prev = _first_node;
     		while (prev->next != _last_node) prev = prev->next;
     		_node_allocator.deallocate(_last_node,1);
     		_last_node = prev;
     		_last_node->next = NULL;
+    		mutex.unlock();
     	}
     }
 
     void clear() {
+		mutex.lock();
     	node_type* node = _first_node;
     	while (node) {
     		node_type* next = node->next;
@@ -254,6 +270,7 @@ public:
     		node = next;
     	}
     	_first_node = _last_node = NULL;
+		mutex.unlock();
     }
 
     bool empty() const {
@@ -302,12 +319,15 @@ public:
 
     void remove(const _Tp& val) {
     	if (_first_node) {
+    		mutex.lock();
 			if (_first_node->value == val) {
 				pop_front();
+				mutex.unlock();
 				return;
 			}
 			if (_last_node->value == val) {
 				pop_back();
+				mutex.unlock();
 				return;
 			}
 			node_type *prev = _first_node;
@@ -315,28 +335,34 @@ public:
 			for (; node; node = node->next) {
 				if (node->value == val) {
 					remove_node(prev,node);
+					mutex.unlock();
 					return;
 				}
 				prev = node;
 			}
+			mutex.unlock();
     	}
     }
 
     iterator erase_after (const_iterator position) {
     	if (position.node) {
+    		mutex.lock();
         	node_type *node = _first_node;
         	for (; node && node != position.node; node = node->next);
         	if (node && node->next) {
         		node_type* nextnext = node->next->next;
         		remove_node(node, node->next);
+        		mutex.unlock();
         		return iterator(nextnext);
         	}
     	}
+		mutex.unlock();
     	return iterator(NULL);
     }
 
     iterator erase_after (const_iterator position, const_iterator last) {
     	if (position.node) {
+    		mutex.lock();
         	node_type *node = _first_node;
         	for (; node && node != position.node; node = node->next);
         	if (node && node->next) {
@@ -345,11 +371,26 @@ public:
         			nextnext = node->next->next;
         			remove_node(node, node->next);
         		}
+        		mutex.unlock();
         		return iterator(nextnext);
         	}
     	}
+		mutex.unlock();
     	return iterator(NULL);
     }
+
+	template<class _Predicate>
+	void sync(_Predicate pred) {
+		mutex.lock();
+		try {
+			pred(*this);
+		} catch(...) {
+			mutex.unlock();
+			throw;
+		}
+		mutex.unlock();
+	}
+
 };
 
 
