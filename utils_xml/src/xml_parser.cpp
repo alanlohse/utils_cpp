@@ -94,6 +94,8 @@ struct xml_defs<wchar_t> {
 	}
 };
 
+
+
 template<typename _CharT>
 void parse(const std::basic_istream<_CharT>& is, tag_handler<_CharT>* _handler) {
 	while(is) {
