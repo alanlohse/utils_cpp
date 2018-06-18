@@ -56,10 +56,7 @@ public:
 
 	virtual std::basic_streambuf<char_type, std::char_traits<char_type> >* resolve_entity (const char_type* public_id, const char_type* system_id) = 0;
 
-	virtual void notationDecl (const char_type* name, const char_type* publicId, const char_type* systemId) = 0;
-
-	virtual void unparsed_entity_decl (const char_type* name, const char_type* publicId,
-                                    const char_type* systemId, const char_type* notationName) = 0;
+	virtual void xml_decl(const char_type* version, const char_type* encoding, const char_type* standalone) = 0;
 
 	virtual void start_prefix_mapping (const char_type* prefix, const char_type* uri) = 0;
 
