@@ -14,35 +14,57 @@
 
 using namespace utils::xml;
 
+#define XC_EQUALS 0
+#define XC_RETURN 1
+#define XC_LT 2
+#define XC_GT 3
+#define XC_SLASH 4
+#define XC_QUOTE 5
+#define XC_COLON 6
+#define XC_AMP 7
+#define XC_SEMICOLON 8
+#define XC_BEGIN_CDATA 9
+#define XC_END_CDATA 10
+#define XC_BEGIN_DOCTYPE 11
+#define XC_END_DOCTYPE 12
+#define XC_BEGIN_COMMENT 13
+#define XC_END_COMMENT 14
+#define XC_BEGIN_XML_DECL 15
+#define XC_END_XML_DECL 16
+#define XC_VERSION 17
+#define XC_ECODING 18
+#define XC_STANDALONE 19
+#define XC_ELEMENT 20
+#define XC_PCDATA 21
+#define XC_CDATA 22
+#define XC_EMPTY 23
+#define XC_ATTLIST 24
+#define XC_ENTITY 25
+#define XC_REQUIRED 26
+#define XC_IMPLIED 27
+#define XC_OPEN_PAR 28
+#define XC_CLOSE_PAR 29
+#define XC_PIPE 30
+#define XC_PLUS 31
+#define XC_QUESTION 32
+#define XC_FIXED 33
+#define XC_ASTERIX 34
+#define XC_ANY 35
+#define XC_OPEN_BRAC 36
+#define XC_CLOSE_BRAC 37
+
+const char* _char_xml_constants[] = {
+		"=", "\n", "<", ">", "/", "\"", ":", "&",
+		";", "<![CDATA[", "]]>", "<!DOCTYPE", ">", "<!--", "-->", "<?xml", "?>",
+		"version", "encoding", "standalone", "<!ELEMENT", "#PCDATA", "CDATA",
+		"EMPTY", "<!ATTLIST", "<!ENTITY", "#REQUIRED", "#IMPLIED", "(", ")",
+		"|", "+", "?", "#FIXED", "*", "ANY", "[", "]"
+};
+
 template<typename _CharT>
 struct xml_defs {
 	typedef _CharT char_type;
-	static char_type equal_to() { return '='; }
-	static char_type new_line() { return '\n'; }
-	static char_type begin_tag() { return '<'; }
-	static char_type end_tag() { return '>'; }
-	static char_type bar() { return '/'; }
-	static char_type quote() { return '"'; }
-	static char_type colon() { return ':'; }
-	static char_type ampersand() { return '&'; }
-	static char_type semicolon() { return ';'; }
-	static const char_type* begin_cdata() { return "<![CDATA["; }
-	static const char_type* end_cdata() { return "]]>"; }
-	static const char_type* begin_doctype() { return "<!DOCTYPE"; }
-	static const char_type* end_doctype() { return ">"; }
-	static const char_type* begin_comment() { return "<!--"; }
-	static const char_type* end_comment() { return "-->"; }
-	static const char_type* begin_xml_decl() { return "<?xml"; }
-	static const char_type* end_xml_decl() { return "?>"; }
-	static const char_type* version() { return "version"; }
-	static const char_type* encoding() { return "encoding"; }
-	static const char_type* standalone() { return "standalone"; }
-	static const char_type* element() { return "ELEMENT"; }
-	static const char_type* pcdata() { return "PCDATA"; }
-	static const char_type* cdata() { return "CDATA"; }
-	static const char_type* empty() { return "EMPTY"; }
-	static const char_type* attlist() { return "ATTLIST"; }
-	static const char_type* entity() { return "ENTITY"; }
+	static const char_type* text(int index) { return _char_xml_constants[index]; }
 	static int strcmp(const char_type* s1, const char_type* s2) {
 		return ::strcmp(s1,s2);
 	}
@@ -51,24 +73,19 @@ struct xml_defs {
 	}
 };
 
+const wchar_t* _wchar_xml_constants[] = {
+		L"=", L"\n", L"<", L">", L"/", L"\"",
+		L":", L"&", L";", L"<![CDATA[", L"]]>", L"<!DOCTYPE", L">", L"<!--",
+		L"-->", L"<?xml", L"?>", L"version", L"encoding", L"standalone",
+		L"<!ELEMENT", L"#PCDATA", L"CDATA", L"EMPTY", L"<!ATTLIST", L"<!ENTITY",
+		L"#REQUIRED", L"#IMPLIED", L"(", L")", L"|", L"+", L"?", L"#FIXED",
+		L"*", L"ANY", L"[", L"]"
+};
+
 template<>
 struct xml_defs<wchar_t> {
 	typedef wchar_t char_type;
-	static wchar_t equal_to() { return L'='; }
-	static wchar_t new_line() { return L'\n'; }
-	static wchar_t begin_tag() { return L'<'; }
-	static wchar_t end_tag() { return L'>'; }
-	static wchar_t bar() { return L'/'; }
-	static wchar_t quote() { return L'"'; }
-	static wchar_t colon() { return L':'; }
-	static wchar_t begin_xml_decl() { return L"<?xml"; }
-	static wchar_t end_xml_decl() { return L"?>"; }
-	static const wchar_t* begin_cdata() { return L"<![CDATA["; }
-	static const wchar_t* end_cdata() { return L"]]>"; }
-	static const wchar_t* begin_doctype() { return L"<!DOCTYPE"; }
-	static const wchar_t* end_doctype() { return L">"; }
-	static const wchar_t* begin_comment() { return L"<!--"; }
-	static const wchar_t* end_comment() { return L"-->"; }
+	static const char_type* text(int index) { return _wchar_xml_constants[index]; }
 	static int strcmp(const wchar_t* s1, const wchar_t* s2) {
 		return ::wcscmp(s1,s2);
 	}
@@ -76,6 +93,13 @@ struct xml_defs<wchar_t> {
 		return ::wcsncmp(s1,s2,n);
 	}
 };
+
+template<typename _CharT>
+void parse(const std::basic_istream<_CharT>& is, tag_handler<_CharT>* _handler) {
+	while(is) {
+		_CharT ch = (_CharT) is.get();
+	}
+}
 
 void basic_xml_parser<char>::parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler) {
 
