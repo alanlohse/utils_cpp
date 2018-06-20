@@ -11,6 +11,9 @@
 #include <string.h>
 #include <string>
 #include <regex>
+#include <iostream>
+#include <sstream>
+#include <memory>
 
 using namespace utils::xml;
 
@@ -94,12 +97,70 @@ struct xml_defs<wchar_t> {
 	}
 };
 
-
+template <typename _CharT, class _Alloc>
+class string_builder {
+public:
+	typedef _CharT char_type;
+	typedef typename _Alloc::template rebind<char_type>::other allocator_type;
+	typedef size_t size_type;
+private:
+	char_type* _M_begin;
+	char_type* _M_cur;
+	char_type* _M_end;
+	allocator_type _allocator;
+	void _resize(size_type n) {
+		if (n == 0) return;
+		char_type* old_begin = _M_begin;
+		char_type* old_cur = _M_cur;
+		char_type* old_end = _M_end;
+		_M_begin = _allocator.allocate(n);
+		_M_cur = _M_begin;
+		_M_end = _M_begin + n;
+		*_M_cur = 0;
+		if (old_begin) {
+			for (char_type* cur = old_begin; cur < old_cur; cur++, _M_cur++)
+				*_M_cur = *cur;
+			*_M_cur = 0;
+		}
+	}
+public:
+	string_builder(size_type n = 0) : _M_begin(nullptr),
+		_M_cur(nullptr),
+		_M_end(nullptr),
+		_allocator() {
+		_resize(n);
+	}
+	~string_builder() {
+		if (_M_begin)
+			_allocator.deallocate(_M_begin, _M_end - _M_begin);
+	}
+	size_type length() const {
+		return _M_cur - _M_begin;
+	}
+	string_builder& push(char_type ch) {
+		if (_M_cur == _M_end - 1) {
+			_resize(length() * 2);
+		}
+		*(_M_cur++) = ch;
+		*_M_cur = 0;
+		return *this;
+	}
+	string_builder& clear() {
+		_M_cur = _M_begin;
+		*_M_cur = 0;
+		return *this;
+	}
+	char_type* c_str() const {
+		return _M_begin;
+	}
+};
 
 template<typename _CharT>
 void parse(const std::basic_istream<_CharT>& is, tag_handler<_CharT>* _handler) {
+	string_builder<_CharT,std::allocator<_CharT>> builder;
 	while(is) {
 		_CharT ch = (_CharT) is.get();
+		builder.push(ch);
 	}
 }
 
