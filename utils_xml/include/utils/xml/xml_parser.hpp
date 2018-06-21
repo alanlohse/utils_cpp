@@ -62,7 +62,9 @@ public:
 
 	virtual void end_prefix_mapping (const char_type* prefix) = 0;
 
-	virtual void characters (const char_type* ch, int start, int length) = 0;
+	virtual void characters (const char_type* begin, const char_type* end) = 0;
+
+	virtual void comments (const char_type* begin, const char_type* end) = 0;
 
 	virtual void ignorable_whitespace (const char_type* ch, int start, int length) = 0;
 
@@ -88,11 +90,11 @@ public:
 
 	~basic_xml_parser() { }
 
-	void parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>& _handler) {
+	void parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>& _handler) {
 		parse(_input_stream, &_handler);
 	}
 
-	void parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler) {
+	void parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler) {
 	}
 
 };
@@ -111,11 +113,11 @@ public:
 
 	~basic_xml_parser() { }
 
-	void parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>& _handler) {
+	void parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>& _handler) {
 		parse(_input_stream, &_handler);
 	}
 
-	void parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler);
+	void parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler);
 
 };
 
@@ -130,11 +132,11 @@ public:
 
 	~basic_xml_parser() { }
 
-	void parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>& _handler) {
+	void parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>& _handler) {
 		parse(_input_stream, &_handler);
 	}
 
-	void parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler);
+	void parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler);
 
 };
 

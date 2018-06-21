@@ -64,8 +64,8 @@ const char* _char_xml_constants[] = {
 		"|", "+", "?", "#FIXED", "*", "ANY", "[", "]"
 };
 
-std::regex IS_TAG("^<(\\w+)?[:]?(\w+)\\s$");
-std::wregex IS_TAGW(L"^<(\\w+)?[:]?(\w+)\\s$");
+std::regex IS_TAG("^<(\\w+)?[:]?(\\w+)\\s$");
+std::wregex IS_TAGW(L"^<(\\w+)?[:]?(\\w+)\\s$");
 
 template<typename _CharT>
 struct xml_defs {
@@ -149,7 +149,6 @@ private:
 		if (n == 0) return;
 		char_type* old_begin = _M_begin;
 		char_type* old_cur = _M_cur;
-		char_type* old_end = _M_end;
 		_M_begin = _allocator.allocate(n);
 		_M_cur = _M_begin;
 		_M_end = _M_begin + n;
@@ -171,8 +170,18 @@ public:
 		if (_M_begin)
 			_allocator.deallocate(_M_begin, _M_end - _M_begin);
 	}
+	size_type capacity() const {
+		return _M_end - _M_begin;
+	}
 	size_type length() const {
 		return _M_cur - _M_begin;
+	}
+	string_builder& length(size_type _new_length) {
+		if (_new_length < length()) {
+			_M_cur = _M_begin + _new_length;
+			*_M_cur = 0;
+		}
+		return *this;
 	}
 	string_builder& push(char_type ch) {
 		if (_M_cur == _M_end - 1) {
@@ -188,6 +197,18 @@ public:
 		return *this;
 	}
 	char_type* c_str() const {
+		return _M_begin;
+	}
+	char_type* begin() const {
+		return _M_begin;
+	}
+	char_type* end() const {
+		return _M_begin;
+	}
+	const char_type* cbegin() const {
+		return _M_begin;
+	}
+	const char_type* cend() const {
 		return _M_begin;
 	}
 	bool equals(const char_type* str) const {
@@ -206,23 +227,40 @@ void event_for(const _CharT* str, tag_handler<_CharT>* _handler) {
 }
 
 template<typename _CharT>
-void read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
-		const std::basic_istream<_CharT>& is,
+bool parse_tag(const _CharT* str,
+		tag_handler<_CharT>* _handler) {
+
+	return true;
+}
+
+template<typename _CharT>
+bool read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
+		std::basic_istream<_CharT>& is,
 		tag_handler<_CharT>* _handler) {
 	bool in_tag = false;
 	bool in_comment = false;
 	bool in_cdata = false;
 	bool in_doctype = false;
-	int tags_count = 0;
+//	int tags_count = 0;
 	while(is) {
 		_CharT ch = (_CharT) is.get();
 		builder.push(ch);
-		if (in_tag && ch == *(xml_defs<_CharT>::text(XC_GT))) {
-			// end tag
+		if (in_tag) {
+			if (ch == *(xml_defs<_CharT>::text(XC_GT))) {
+				bool result = parse_tag(builder.c_str(), _handler);
+				builder.clear();
+				return result;
+			}
 		} else if (in_doctype) {
 			// read entire doc_type
 		} else if (in_comment) {
-			// read entire comment
+			const _CharT* begin_comments = xml_defs<_CharT>::text(XC_BEGIN_COMMENT);
+			const _CharT* end_comments = xml_defs<_CharT>::text(XC_END_COMMENT);
+			if (builder.endswith(end_comments)) {
+				builder.length(builder.length() - xml_defs<_CharT>::strlen(end_comments));
+				_handler->comments(builder.c_str() + xml_defs<_CharT>::strlen(begin_comments),
+						builder.cend());
+			}
 		} else if (in_cdata) {
 			// read entire cdata
 		} else {
@@ -240,10 +278,8 @@ void read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
 }
 
 template<typename _CharT>
-void parse(const std::basic_istream<_CharT>& is, tag_handler<_CharT>* _handler) {
+void parse_xml(std::basic_istream<_CharT>& is, tag_handler<_CharT>* _handler) {
 	string_builder<_CharT,std::allocator<_CharT>> builder;
-	bool in_string = false;
-	bool tag_openned = false;
 	while(is) {
 		_CharT ch = (_CharT) is.get();
 		if (ch == *(xml_defs<_CharT>::text(XC_LT))) {
@@ -257,10 +293,10 @@ void parse(const std::basic_istream<_CharT>& is, tag_handler<_CharT>* _handler) 
 	}
 }
 
-void basic_xml_parser<char>::parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler) {
-	::parse(_input_stream, _handler);
+void basic_xml_parser<char>::parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler) {
+	parse_xml(_input_stream, _handler);
 }
 
-void basic_xml_parser<wchar_t>::parse(const std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler) {
-	::parse(_input_stream, _handler);
+void basic_xml_parser<wchar_t>::parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler) {
+	parse_xml(_input_stream, _handler);
 }
