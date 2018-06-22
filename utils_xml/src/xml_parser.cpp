@@ -203,13 +203,13 @@ public:
 		return _M_begin;
 	}
 	char_type* end() const {
-		return _M_begin;
+		return _M_cur;
 	}
 	const char_type* cbegin() const {
 		return _M_begin;
 	}
 	const char_type* cend() const {
-		return _M_begin;
+		return _M_cur;
 	}
 	bool equals(const char_type* str) const {
 		return xml_defs<char_type>::strcmp(_M_begin, str);
@@ -222,12 +222,21 @@ public:
 };
 
 template<typename _CharT>
-void event_for(const _CharT* str, tag_handler<_CharT>* _handler) {
+bool parse_tag(const _CharT* str,
+		tag_handler<_CharT>* _handler) {
 
+	return true;
 }
 
 template<typename _CharT>
-bool parse_tag(const _CharT* str,
+bool parse_doctype(const _CharT* str,
+		tag_handler<_CharT>* _handler) {
+
+	return true;
+}
+
+template<typename _CharT>
+bool parse_xml_decl(const _CharT* str,
 		tag_handler<_CharT>* _handler) {
 
 	return true;
@@ -241,7 +250,8 @@ bool read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
 	bool in_comment = false;
 	bool in_cdata = false;
 	bool in_doctype = false;
-//	int tags_count = 0;
+	bool in_xml = false;
+	int tags_count = 0;
 	while(is) {
 		_CharT ch = (_CharT) is.get();
 		builder.push(ch);
@@ -252,7 +262,16 @@ bool read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
 				return result;
 			}
 		} else if (in_doctype) {
-			// read entire doc_type
+			if (ch == *(xml_defs<_CharT>::text(XC_LT)))
+				tags_count++;
+			if (ch == *(xml_defs<_CharT>::text(XC_GT))) {
+				if (tags_count == 0) {
+					bool result = parse_doctype(builder.c_str(), _handler);
+					builder.clear();
+					return result;
+				} else
+					tags_count--;
+			}
 		} else if (in_comment) {
 			const _CharT* begin_comments = xml_defs<_CharT>::text(XC_BEGIN_COMMENT);
 			const _CharT* end_comments = xml_defs<_CharT>::text(XC_END_COMMENT);
@@ -260,9 +279,25 @@ bool read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
 				builder.length(builder.length() - xml_defs<_CharT>::strlen(end_comments));
 				_handler->comments(builder.c_str() + xml_defs<_CharT>::strlen(begin_comments),
 						builder.cend());
+				return true;
+			}
+		} else if (in_xml) {
+			const _CharT* begin_xml_decl = xml_defs<_CharT>::text(XC_BEGIN_XML_DECL);
+			const _CharT* end_xml_decl = xml_defs<_CharT>::text(XC_END_XML_DECL);
+			if (builder.endswith(end_xml_decl)) {
+				bool result = parse_xml_decl(builder.c_str(), _handler);
+				builder.clear();
+				return result;
 			}
 		} else if (in_cdata) {
-			// read entire cdata
+			const _CharT* begin_cdata = xml_defs<_CharT>::text(XC_BEGIN_CDATA);
+			const _CharT* end_cdata = xml_defs<_CharT>::text(XC_END_CDATA);
+			if (builder.endswith(end_cdata)) {
+				builder.length(builder.length() - xml_defs<_CharT>::strlen(end_cdata));
+				_handler->characters(builder.c_str() + xml_defs<_CharT>::strlen(begin_cdata),
+						builder.cend());
+				return true;
+			}
 		} else {
 			if (builder.endswith(xml_defs<_CharT>::text(XC_BEGIN_DOCTYPE)))
 				in_doctype = true;
@@ -270,10 +305,13 @@ bool read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
 				in_cdata = true;
 			else if (builder.endswith(xml_defs<_CharT>::text(XC_BEGIN_COMMENT)))
 				in_comment = true;
+			else if (builder.endswith(xml_defs<_CharT>::text(XC_BEGIN_XML_DECL)))
+				in_xml = true;
 			else if (xml_defs<_CharT>::is_tag(builder.c_str()))
 				in_tag = true;
 		}
 	}
+	_handler->fatal_error(xml_parser_exception("Unexpected end of file."));
 	return false;
 }
 
@@ -283,7 +321,8 @@ void parse_xml(std::basic_istream<_CharT>& is, tag_handler<_CharT>* _handler) {
 	while(is) {
 		_CharT ch = (_CharT) is.get();
 		if (ch == *(xml_defs<_CharT>::text(XC_LT))) {
-			event_for(builder.c_str(), _handler);
+			if (builder.length() != 0)
+				_handler->characters(builder.begin(), builder.cend());
 			builder.clear();
 			builder.push(ch);
 			if (!read_tag(builder, is, _handler))
