@@ -12,6 +12,7 @@
 #include <utils/utils_defs.hpp>
 #include <utils/exception.hpp>
 #include <vector>
+#include <string>
 #include <istream>
 #include <type_traits>
 
@@ -33,9 +34,9 @@ public:
 
 template<typename _CharT>
 struct attribute {
-	const _CharT* name;
-	const _CharT* uri;
-	const _CharT* value;
+	std::basic_string<_CharT> name;
+	std::basic_string<_CharT> prefix;
+	std::basic_string<_CharT> value;
 };
 
 template<typename _CharT>
@@ -50,9 +51,9 @@ public:
 
 	virtual void end_document() = 0;
 
-	virtual void start_element(const char_type* tag, const char_type* uri, const std::vector<attribute<char_type> >& attributes) = 0;
+	virtual void start_element(const char_type* tag, const char_type* prefix, const std::vector<attribute<char_type> >& attributes) = 0;
 
-	virtual void end_element(const char_type* tag, const char_type* uri) = 0;
+	virtual void end_element(const char_type* tag, const char_type* prefix) = 0;
 
 	virtual std::basic_streambuf<char_type, std::char_traits<char_type> >* resolve_entity (const char_type* public_id, const char_type* system_id) = 0;
 

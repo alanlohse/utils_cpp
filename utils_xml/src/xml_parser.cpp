@@ -35,7 +35,7 @@ using namespace utils::xml;
 #define XC_BEGIN_XML_DECL 15
 #define XC_END_XML_DECL 16
 #define XC_VERSION 17
-#define XC_ECODING 18
+#define XC_ENCODING 18
 #define XC_STANDALONE 19
 #define XC_ELEMENT 20
 #define XC_PCDATA 21
@@ -66,6 +66,8 @@ const char* _char_xml_constants[] = {
 
 std::regex IS_TAG("^<(\\w+)?[:]?(\\w+)\\s$");
 std::wregex IS_TAGW(L"^<(\\w+)?[:]?(\\w+)\\s$");
+std::regex ATTRS("(\\w+[:])?(\\w+)=\"(.*?)\"");
+std::wregex ATTRSW(L"(\\w+[:])?(\\w+)=\"(.*?)\"");
 
 template<typename _CharT>
 struct xml_defs {
@@ -93,6 +95,17 @@ struct xml_defs {
 	}
 	static bool is_tag(const char_type* str) {
 		return std::regex_match (str, IS_TAG);
+	}
+	template<typename _Found_proc>
+	static void find_attr(const std::string& str, _Found_proc& found_proc) {
+		auto words_begin =
+		      std::sregex_iterator(str.begin(), str.end(), ATTRS);
+		    auto words_end = std::sregex_iterator();
+
+		for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+		    std::smatch match = *i;
+		    found_proc(match[1], match[2], match[3]);
+		}
 	}
 };
 
@@ -131,6 +144,17 @@ struct xml_defs<wchar_t> {
 	}
 	static bool is_tag(const char_type* str) {
 		return std::regex_match (str, IS_TAGW);
+	}
+	template<typename _Found_proc>
+	static void find_attr(const std::wstring& str, _Found_proc& found_proc) {
+		auto words_begin =
+		      std::wsregex_iterator(str.begin(), str.end(), ATTRSW);
+		    auto words_end = std::wsregex_iterator();
+
+		for (std::wsregex_iterator i = words_begin; i != words_end; ++i) {
+		    std::wsmatch match = *i;
+		    found_proc(match[1], match[2], match[3]);
+		}
 	}
 };
 
@@ -222,6 +246,27 @@ public:
 };
 
 template<typename _CharT>
+struct attributes {
+	std::vector<attribute<_CharT> > attrs;
+	void operator()(const std::basic_string<_CharT>& ns,
+			const std::basic_string<_CharT>& name,
+			const std::basic_string<_CharT>& value) {
+		attribute<_CharT> attr;
+		attr.prefix = ns;
+		attr.name = name;
+		attr.value = value;
+		attrs.push_back(attr);
+	}
+};
+
+template<typename _CharT>
+std::vector<attribute<_CharT> > parse_attrs(const _CharT* str) {
+	attributes<_CharT> attrs;
+	xml_defs<_CharT>::find_attr(str,attrs);
+	return attrs.attrs;
+}
+
+template<typename _CharT>
 bool parse_tag(const _CharT* str,
 		tag_handler<_CharT>* _handler) {
 
@@ -238,7 +283,21 @@ bool parse_doctype(const _CharT* str,
 template<typename _CharT>
 bool parse_xml_decl(const _CharT* str,
 		tag_handler<_CharT>* _handler) {
-
+	std::vector<attribute<_CharT> > attrs = parse_attrs(str);
+	const _CharT* version = NULL;
+	const _CharT* encoding = NULL;
+	const _CharT* standalone = NULL;
+	typename std::vector<attribute<_CharT> >::iterator it = attrs.begin();
+	typename std::vector<attribute<_CharT> >::iterator end = attrs.end();
+	for (; it != end; ++it) {
+		if (it->name == xml_defs<_CharT>::text(XC_VERSION))
+			version = it->value.c_str();
+		if (it->name == xml_defs<_CharT>::text(XC_ENCODING))
+			encoding = it->value.c_str();
+		if (it->name == xml_defs<_CharT>::text(XC_STANDALONE))
+			standalone = it->value.c_str();
+	}
+	_handler->xml_decl(version,encoding,standalone);
 	return true;
 }
 
@@ -285,7 +344,8 @@ bool read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
 			const _CharT* begin_xml_decl = xml_defs<_CharT>::text(XC_BEGIN_XML_DECL);
 			const _CharT* end_xml_decl = xml_defs<_CharT>::text(XC_END_XML_DECL);
 			if (builder.endswith(end_xml_decl)) {
-				bool result = parse_xml_decl(builder.c_str(), _handler);
+				builder.length(builder.length() - xml_defs<_CharT>::strlen(end_xml_decl));
+				bool result = parse_xml_decl(builder.c_str() + xml_defs<_CharT>::strlen(begin_xml_decl), _handler);
 				builder.clear();
 				return result;
 			}
