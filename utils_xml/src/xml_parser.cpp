@@ -66,97 +66,12 @@ const char* _char_xml_constants[] = {
 
 std::regex IS_TAG("^<(\\w+)?[:]?(\\w+)\\s$");
 std::wregex IS_TAGW(L"^<(\\w+)?[:]?(\\w+)\\s$");
-std::regex ATTRS("(\\w+[:])?(\\w+)=\"(.*?)\"");
-std::wregex ATTRSW(L"(\\w+[:])?(\\w+)=\"(.*?)\"");
-
-template<typename _CharT>
-struct xml_defs {
-	typedef _CharT char_type;
-	static const char_type* text(int index) { return _char_xml_constants[index]; }
-	static const bool is_space(char_type ch) {
-		return ch == '\n' || ch == '\r' || ch == '\t' || ch == ' ';
-	}
-	static int strcmp(const char_type* s1, const char_type* s2) {
-		return ::strcmp(s1,s2);
-	}
-	static int strlen(const char_type* s) {
-		return ::strlen(s);
-	}
-	static int strncmp(const char_type* s1, const char_type* s2, size_t n) {
-		return ::strncmp(s1,s2,n);
-	}
-	static bool endswith(const char_type* s1, const char_type* s2) {
-		size_t ls1 = ::strlen(s1);
-		size_t ls2 = ::strlen(s2);
-		if (ls1 > ls2)
-			return ::strcmp(s1 + ls1 - ls2, s2) == 0;
-		else
-			return ::strcmp(s2 + ls2 - ls1, s1) == 0;
-	}
-	static bool is_tag(const char_type* str) {
-		return std::regex_match (str, IS_TAG);
-	}
-	template<typename _Found_proc>
-	static void find_attr(const std::string& str, _Found_proc& found_proc) {
-		auto words_begin =
-		      std::sregex_iterator(str.begin(), str.end(), ATTRS);
-		    auto words_end = std::sregex_iterator();
-
-		for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-		    std::smatch match = *i;
-		    found_proc(match[1], match[2], match[3]);
-		}
-	}
-};
-
-const wchar_t* _wchar_xml_constants[] = {
-		L"=", L"\n", L"<", L">", L"/", L"\"",
-		L":", L"&", L";", L"<![CDATA[", L"]]>", L"<!DOCTYPE", L">", L"<!--",
-		L"-->", L"<?xml", L"?>", L"version", L"encoding", L"standalone",
-		L"<!ELEMENT", L"#PCDATA", L"CDATA", L"EMPTY", L"<!ATTLIST", L"<!ENTITY",
-		L"#REQUIRED", L"#IMPLIED", L"(", L")", L"|", L"+", L"?", L"#FIXED",
-		L"*", L"ANY", L"[", L"]"
-};
-
-template<>
-struct xml_defs<wchar_t> {
-	typedef wchar_t char_type;
-	static const char_type* text(int index) { return _wchar_xml_constants[index]; }
-	static const bool is_space(char_type ch) {
-		return ch == L'\n' || ch == L'\r' || ch == L'\t' || ch == L' ';
-	}
-	static int strlen(const char_type* s) {
-		return ::wcslen(s);
-	}
-	static int strcmp(const wchar_t* s1, const wchar_t* s2) {
-		return ::wcscmp(s1,s2);
-	}
-	static int strncmp(const wchar_t* s1, const wchar_t* s2, size_t n) {
-		return ::wcsncmp(s1,s2,n);
-	}
-	static bool endswith(const char_type* s1, const char_type* s2) {
-		size_t ls1 = wcslen(s1);
-		size_t ls2 = wcslen(s2);
-		if (ls1 > ls2)
-			return ::wcscmp(s1 + ls1 - ls2, s2) == 0;
-		else
-			return ::wcscmp(s2 + ls2 - ls1, s1) == 0;
-	}
-	static bool is_tag(const char_type* str) {
-		return std::regex_match (str, IS_TAGW);
-	}
-	template<typename _Found_proc>
-	static void find_attr(const std::wstring& str, _Found_proc& found_proc) {
-		auto words_begin =
-		      std::wsregex_iterator(str.begin(), str.end(), ATTRSW);
-		    auto words_end = std::wsregex_iterator();
-
-		for (std::wsregex_iterator i = words_begin; i != words_end; ++i) {
-		    std::wsmatch match = *i;
-		    found_proc(match[1], match[2], match[3]);
-		}
-	}
-};
+std::regex ATTRS("^\\s*(\\w+[:])?(\\w+)=\"([^\"]*)\"\\s*");
+std::wregex ATTRSW(L"^\\s*(\\w+[:])?(\\w+)=\"([^\"]*)\"\\s*");
+std::regex ENT_NUM("^#\\d+$");
+std::regex ENT_HEX("^#x[0-9a-fA-F]+$");
+std::wregex ENT_NUMW(L"^#\\d+$");
+std::wregex ENT_HEXW(L"^#x[0-9a-fA-F]+$");
 
 template <typename _CharT, class _Alloc>
 class string_builder {
@@ -215,6 +130,19 @@ public:
 		*_M_cur = 0;
 		return *this;
 	}
+	string_builder& append(const char_type* str) {
+		while (*str != 0) {
+			push(*(str++));
+		}
+		return *this;
+	}
+	template <class _Iterator>
+	string_builder& append(_Iterator _begin, _Iterator _end) {
+		_Iterator it = _begin;
+		for (; it != _end; it++)
+			push(*it);
+		return *this;
+	}
 	string_builder& clear() {
 		_M_cur = _M_begin;
 		*_M_cur = 0;
@@ -235,13 +163,224 @@ public:
 	const char_type* cend() const {
 		return _M_cur;
 	}
-	bool equals(const char_type* str) const {
-		return xml_defs<char_type>::strcmp(_M_begin, str);
+	bool equals(const char_type* str) const;
+	bool endswith(const char_type* str) const;
+};
+
+template<typename _CharT>
+struct xml_defs {
+	typedef _CharT char_type;
+	static const char_type* text(int index) { return _char_xml_constants[index]; }
+	static const bool is_space(char_type ch) {
+		return ch == '\n' || ch == '\r' || ch == '\t' || ch == ' ';
 	}
-	bool endswith(const char_type* str) const {
-		size_t ls2 = xml_defs<char_type>::strlen(str);
-		if (length() < ls2) return false;
-		return xml_defs<char_type>::strcmp(_M_cur - ls2, str);
+	static int strcmp(const char_type* s1, const char_type* s2) {
+		return ::strcmp(s1,s2);
+	}
+	static int strlen(const char_type* s) {
+		return ::strlen(s);
+	}
+	static int strncmp(const char_type* s1, const char_type* s2, size_t n) {
+		return ::strncmp(s1,s2,n);
+	}
+	static bool endswith(const char_type* s1, const char_type* s2) {
+		size_t ls1 = ::strlen(s1);
+		size_t ls2 = ::strlen(s2);
+		if (ls1 > ls2)
+			return ::strcmp(s1 + ls1 - ls2, s2) == 0;
+		else
+			return ::strcmp(s2 + ls2 - ls1, s1) == 0;
+	}
+	static bool is_tag(const char_type* str) {
+		return std::regex_match (str, IS_TAG);
+	}
+	static bool is_ident(char_type ch) {
+		return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')
+				|| ch == '_' || ch == '#';
+	}
+	static bool default_entities(const char_type* name, string_builder<char_type,std::allocator<char_type>> &result) {
+		const char_type* value = NULL;
+		char_type buf[2]= {0,0};
+		if (strcmp(name,"amp"))
+			value = "&";
+		else if (strcmp(name,"gt"))
+			value = ">";
+		else if (strcmp(name,"lt"))
+			value = "<";
+		else if (strcmp(name,"quot"))
+			value = "\"";
+		else if (strcmp(name,"apos"))
+			value = "'";
+		else if (std::regex_match(name, name+strlen(name),ENT_NUM)) {
+			char_type* endp;
+			int val = std::strtol(name, &endp,10);
+			buf[0] = (char_type) val;
+			value = buf;
+		} else if (std::regex_match(name, name+strlen(name),ENT_HEX)) {
+			char_type* endp;
+			int val = std::strtol(name, &endp,16);
+			buf[0] = (char_type) val;
+			value = buf;
+		}
+		if (value) result.append(value);
+		return value != NULL;
+	}
+	static std::basic_string<char_type> parse_characters(const char_type* str, tag_handler<char_type>* _handler) {
+		const char_type* send = str + strlen(str);
+		string_builder<char_type,std::allocator<char_type>> result;
+		string_builder<char_type,std::allocator<char_type>> entity;
+		char_type amp = *text(XC_AMP);
+		char_type sc = *text(XC_SEMICOLON);
+		bool in_entity = false;
+		for (; str < send; str++) {
+			if (in_entity) {
+				if (*str == sc) {
+					if (!default_entities(entity.c_str(), result)) {
+						result.append(_handler->entity(entity.c_str()));
+					}
+					entity.clear();
+					in_entity = false;
+				} else if (is_ident(*str)) {
+					entity.push(*str);
+				} else {
+					throw xml_parser_exception("Invalid entity");
+				}
+			} else {
+				if (*str == amp) {
+					in_entity = true;
+				} else
+					result.push(*str);
+			}
+		}
+		return result.c_str();
+	}
+	template<typename _Found_proc>
+	static bool find_attr(const char_type* str, _Found_proc& found_proc, tag_handler<char_type>* _handler) {
+		const char_type* send = str + strlen(str);
+		while (str < send) {
+			std::cmatch match;
+			std::regex_search(str, send, match, ATTRS);
+			if (match.size() != 0) {
+			    found_proc(match[1], match[2], parse_characters(match[3].str().c_str(), _handler));
+				str = str + match[0].str().length();
+			} else {
+				return false;
+			}
+		}
+		return true;
+	}
+};
+
+const wchar_t* _wchar_xml_constants[] = {
+		L"=", L"\n", L"<", L">", L"/", L"\"",
+		L":", L"&", L";", L"<![CDATA[", L"]]>", L"<!DOCTYPE", L">", L"<!--",
+		L"-->", L"<?xml", L"?>", L"version", L"encoding", L"standalone",
+		L"<!ELEMENT", L"#PCDATA", L"CDATA", L"EMPTY", L"<!ATTLIST", L"<!ENTITY",
+		L"#REQUIRED", L"#IMPLIED", L"(", L")", L"|", L"+", L"?", L"#FIXED",
+		L"*", L"ANY", L"[", L"]"
+};
+
+template<>
+struct xml_defs<wchar_t> {
+	typedef wchar_t char_type;
+	static const char_type* text(int index) { return _wchar_xml_constants[index]; }
+	static const bool is_space(char_type ch) {
+		return ch == L'\n' || ch == L'\r' || ch == L'\t' || ch == L' ';
+	}
+	static int strlen(const char_type* s) {
+		return ::wcslen(s);
+	}
+	static int strcmp(const wchar_t* s1, const wchar_t* s2) {
+		return ::wcscmp(s1,s2);
+	}
+	static int strncmp(const wchar_t* s1, const wchar_t* s2, size_t n) {
+		return ::wcsncmp(s1,s2,n);
+	}
+	static bool endswith(const char_type* s1, const char_type* s2) {
+		size_t ls1 = wcslen(s1);
+		size_t ls2 = wcslen(s2);
+		if (ls1 > ls2)
+			return ::wcscmp(s1 + ls1 - ls2, s2) == 0;
+		else
+			return ::wcscmp(s2 + ls2 - ls1, s1) == 0;
+	}
+	static bool is_ident(char_type ch) {
+		return (ch >= L'A' && ch <= L'Z') || (ch >= L'a' && ch <= L'z') || (ch >= L'0' && ch <= L'9')
+				|| ch == L'_' || ch == L'#';
+	}
+	static bool is_tag(const char_type* str) {
+		return std::regex_match (str, IS_TAGW);
+	}
+	static bool default_entities(const char_type* name, string_builder<char_type,std::allocator<char_type>> &result) {
+		const char_type* value = NULL;
+		char_type buf[2]= {0,0};
+		if (strcmp(name,L"amp"))
+			value = L"&";
+		else if (strcmp(name,L"gt"))
+			value = L">";
+		else if (strcmp(name,L"lt"))
+			value = L"<";
+		else if (strcmp(name,L"quot"))
+			value = L"\"";
+		else if (strcmp(name,L"apos"))
+			value = L"'";
+		else if (std::regex_match(name, name+strlen(name),ENT_NUMW)) {
+			char_type* endp;
+			int val = std::wcstol(name, &endp,10);
+			buf[0] = (char_type) val;
+			value = buf;
+		} else if (std::regex_match(name, name+strlen(name),ENT_HEXW)) {
+			char_type* endp;
+			int val = std::wcstol(name, &endp,16);
+			buf[0] = (char_type) val;
+			value = buf;
+		}
+		if (value) result.append(value);
+		return value != NULL;
+	}
+	static std::basic_string<char_type> parse_characters(const char_type* str, tag_handler<char_type>* _handler) {
+		const char_type* send = str + strlen(str);
+		string_builder<char_type,std::allocator<char_type>> result;
+		string_builder<char_type,std::allocator<char_type>> entity;
+		char_type amp = *text(XC_AMP);
+		char_type sc = *text(XC_SEMICOLON);
+		bool in_entity = false;
+		for (; str < send; str++) {
+			if (in_entity) {
+				if (*str == sc) {
+					if (!default_entities(entity.c_str(), result)) {
+						result.append(_handler->entity(entity.c_str()));
+					}
+					entity.clear();
+					in_entity = false;
+				} else if (is_ident(*str)) {
+					entity.push(*str);
+				} else {
+					throw xml_parser_exception("Invalid entity");
+				}
+			} else {
+				if (*str == amp) {
+					in_entity = true;
+				} else
+					result.push(*str);
+			}
+		}
+		return result.c_str();
+	}
+	template<typename _Found_proc>
+	static bool find_attr(const char_type* str, _Found_proc& found_proc, tag_handler<char_type>* _handler) {
+		const char_type* send = str + strlen(str);
+		while (str < send) {
+			std::wcmatch match;
+			std::regex_search(str, send, match, ATTRSW);
+			if (match.size() != 0) {
+			    found_proc(match[1], match[2], parse_characters(match[3].str().c_str(), _handler));
+				str = str + match[0].str().length();
+			} else {
+				return false;
+			}
+		}
+		return true;
 	}
 };
 
@@ -260,9 +399,9 @@ struct attributes {
 };
 
 template<typename _CharT>
-std::vector<attribute<_CharT> > parse_attrs(const _CharT* str) {
+std::vector<attribute<_CharT> > parse_attrs(const _CharT* str, tag_handler<_CharT>* _handler) {
 	attributes<_CharT> attrs;
-	xml_defs<_CharT>::find_attr(str,attrs);
+	xml_defs<_CharT>::find_attr(str,attrs, _handler);
 	return attrs.attrs;
 }
 
@@ -283,7 +422,7 @@ bool parse_doctype(const _CharT* str,
 template<typename _CharT>
 bool parse_xml_decl(const _CharT* str,
 		tag_handler<_CharT>* _handler) {
-	std::vector<attribute<_CharT> > attrs = parse_attrs(str);
+	std::vector<attribute<_CharT> > attrs = parse_attrs(str, _handler);
 	const _CharT* version = NULL;
 	const _CharT* encoding = NULL;
 	const _CharT* standalone = NULL;
@@ -381,8 +520,10 @@ void parse_xml(std::basic_istream<_CharT>& is, tag_handler<_CharT>* _handler) {
 	while(is) {
 		_CharT ch = (_CharT) is.get();
 		if (ch == *(xml_defs<_CharT>::text(XC_LT))) {
-			if (builder.length() != 0)
-				_handler->characters(builder.begin(), builder.cend());
+			if (builder.length() != 0) {
+				std::basic_string<_CharT> chars = xml_defs<_CharT>::parse_characters(builder.c_str(), _handler);
+				_handler->characters(&(*chars.begin()), &(*chars.cend()));
+			}
 			builder.clear();
 			builder.push(ch);
 			if (!read_tag(builder, is, _handler))
@@ -398,4 +539,15 @@ void basic_xml_parser<char>::parse(std::basic_istream<char_type>& _input_stream,
 
 void basic_xml_parser<wchar_t>::parse(std::basic_istream<char_type>& _input_stream, tag_handler<char_type>* _handler) {
 	parse_xml(_input_stream, _handler);
+}
+
+template <typename _CharT, class _Alloc>
+inline bool string_builder<_CharT, _Alloc>::equals(const char_type* str) const {
+	return xml_defs<char_type>::strcmp(_M_begin, str) == 0;
+}
+template <typename _CharT, class _Alloc>
+inline bool string_builder<_CharT, _Alloc>::endswith(const char_type* str) const {
+	size_t ls2 = xml_defs<char_type>::strlen(str);
+	if (length() < ls2) return false;
+	return xml_defs<char_type>::strcmp(_M_cur - ls2, str);
 }

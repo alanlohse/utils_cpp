@@ -55,8 +55,6 @@ public:
 
 	virtual void end_element(const char_type* tag, const char_type* prefix) = 0;
 
-	virtual std::basic_streambuf<char_type, std::char_traits<char_type> >* resolve_entity (const char_type* public_id, const char_type* system_id) = 0;
-
 	virtual void xml_decl(const char_type* version, const char_type* encoding, const char_type* standalone) = 0;
 
 	virtual void start_prefix_mapping (const char_type* prefix, const char_type* uri) = 0;
@@ -69,7 +67,7 @@ public:
 
 	virtual void ignorable_whitespace (const char_type* ch, int start, int length) = 0;
 
-	virtual void skipped_entity (const char_type* name) = 0;
+	virtual const char_type* entity (const char_type* name) = 0;
 
 	virtual void warning (const xml_parser_exception& e) = 0;
 
