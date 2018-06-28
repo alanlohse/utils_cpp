@@ -93,6 +93,7 @@ public:
 	}
 
 	static int run_tests() {
+		int total_failed = 0;
 		for (std::vector<test_case>::iterator it = _tests().begin(), end = _tests().end();
 				it != end; it++) {
 			std::cout << "Running test case " << it->name << std::endl;
@@ -129,8 +130,9 @@ public:
 			std::cout << "Successes: " << success_count << std::endl;
 			std::cout << "Failures: " << failed_count << std::endl;
 			std::cout << std::endl;
-			return failed_count;
+			total_failed += failed_count;
 		}
+		return total_failed;
 	}
 };
 
