@@ -55,17 +55,20 @@ using namespace utils::xml;
 #define XC_ANY 35
 #define XC_OPEN_BRAC 36
 #define XC_CLOSE_BRAC 37
+#define XC_CLOSE_LEAF 38
 
 const char* _char_xml_constants[] = {
 		"=", "\n", "<", ">", "/", "\"", ":", "&",
 		";", "<![CDATA[", "]]>", "<!DOCTYPE", ">", "<!--", "-->", "<?xml", "?>",
 		"version", "encoding", "standalone", "<!ELEMENT", "#PCDATA", "CDATA",
 		"EMPTY", "<!ATTLIST", "<!ENTITY", "#REQUIRED", "#IMPLIED", "(", ")",
-		"|", "+", "?", "#FIXED", "*", "ANY", "[", "]"
+		"|", "+", "?", "#FIXED", "*", "ANY", "[", "]", "/>"
 };
 
-std::regex IS_TAG("^<(\\w+)?[:]?(\\w+)\\s$");
-std::wregex IS_TAGW(L"^<(\\w+)?[:]?(\\w+)\\s$");
+std::regex IS_TAG("^<(\\w+[:])?(\\w+)(\\s|>)$");
+std::wregex IS_TAGW(L"^<(\\w+[:])?(\\w+)(\\s|>)$");
+std::regex CLOSE_TAG("^</(\\w+[:])?(\\w+)>$");
+std::wregex CLOSE_TAGW(L"^</(\\w+[:])?(\\w+)>$");
 std::regex ATTRS("^\\s*(\\w+[:])?(\\w+)=\"([^\"]*)\"\\s*");
 std::wregex ATTRSW(L"^\\s*(\\w+[:])?(\\w+)=\"([^\"]*)\"\\s*");
 std::regex ENT_NUM("^#\\d+$");
@@ -85,6 +88,7 @@ private:
 	char_type* _M_end;
 	allocator_type _allocator;
 	void _resize(size_type n) {
+		if (_M_begin == NULL) n = 8;
 		if (n == 0) return;
 		char_type* old_begin = _M_begin;
 		char_type* old_cur = _M_cur;
@@ -123,7 +127,7 @@ public:
 		return *this;
 	}
 	string_builder& push(char_type ch) {
-		if (_M_cur == _M_end - 1) {
+		if (_M_cur == NULL || _M_cur == _M_end - 1) {
 			_resize(length() * 2);
 		}
 		*(_M_cur++) = ch;
@@ -254,6 +258,12 @@ struct xml_defs {
 		}
 		return result.c_str();
 	}
+	static std::basic_string<char_type> remove_colon(const std::basic_string<char_type>& str) {
+		if (str.length() != 0 && str.back() == ':') {
+			return str.substr(0, str.length() - 1);
+		} else
+			return str;
+	}
 	template<typename _Found_proc>
 	static bool find_attr(const char_type* str, _Found_proc& found_proc, tag_handler<char_type>* _handler) {
 		const char_type* send = str + strlen(str);
@@ -261,13 +271,35 @@ struct xml_defs {
 			std::cmatch match;
 			std::regex_search(str, send, match, ATTRS);
 			if (match.size() != 0) {
-			    found_proc(match[1], match[2], parse_characters(match[3].str().c_str(), _handler));
+			    found_proc(remove_colon(match[1]), match[2], parse_characters(match[3].str().c_str(), _handler));
 				str = str + match[0].str().length();
 			} else {
 				return false;
 			}
 		}
 		return true;
+	}
+	template<typename _Found_proc>
+	static bool find_tag(const char_type* str, _Found_proc& found_proc) {
+		const char_type* send = str + strlen(str);
+		std::cmatch match;
+		std::regex_search(str, send, match, IS_TAG);
+		if (match.size() != 0) {
+			found_proc(remove_colon(match[1]), match[2]);
+			return true;
+		} else
+			return false;
+	}
+	template<typename _Found_proc>
+	static bool find_closetag(const char_type* str, _Found_proc& found_proc) {
+		const char_type* send = str + strlen(str);
+		std::cmatch match;
+		std::regex_search(str, send, match, CLOSE_TAG);
+		if (match.size() != 0) {
+			found_proc(remove_colon(match[1]), match[2]);
+			return true;
+		} else
+			return false;
 	}
 };
 
@@ -277,7 +309,7 @@ const wchar_t* _wchar_xml_constants[] = {
 		L"-->", L"<?xml", L"?>", L"version", L"encoding", L"standalone",
 		L"<!ELEMENT", L"#PCDATA", L"CDATA", L"EMPTY", L"<!ATTLIST", L"<!ENTITY",
 		L"#REQUIRED", L"#IMPLIED", L"(", L")", L"|", L"+", L"?", L"#FIXED",
-		L"*", L"ANY", L"[", L"]"
+		L"*", L"ANY", L"[", L"]", L"/>"
 };
 
 template<>
@@ -367,6 +399,12 @@ struct xml_defs<wchar_t> {
 		}
 		return result.c_str();
 	}
+	static std::basic_string<char_type> remove_colon(const std::basic_string<char_type>& str) {
+		if (str.length() != 0 && str.back() == L':') {
+			return str.substr(0, str.length() - 1);
+		} else
+			return str;
+	}
 	template<typename _Found_proc>
 	static bool find_attr(const char_type* str, _Found_proc& found_proc, tag_handler<char_type>* _handler) {
 		const char_type* send = str + strlen(str);
@@ -374,13 +412,35 @@ struct xml_defs<wchar_t> {
 			std::wcmatch match;
 			std::regex_search(str, send, match, ATTRSW);
 			if (match.size() != 0) {
-			    found_proc(match[1], match[2], parse_characters(match[3].str().c_str(), _handler));
+			    found_proc(remove_colon(match[1]), match[2], parse_characters(match[3].str().c_str(), _handler));
 				str = str + match[0].str().length();
 			} else {
 				return false;
 			}
 		}
 		return true;
+	}
+	template<typename _Found_proc>
+	static bool find_tag(const char_type* str, _Found_proc& found_proc) {
+		const char_type* send = str + strlen(str);
+		std::wcmatch match;
+		std::regex_search(str, send, match, IS_TAGW);
+		if (match.size() != 0) {
+			found_proc(remove_colon(match[1]), match[2]);
+			return true;
+		} else
+			return false;
+	}
+	template<typename _Found_proc>
+	static bool find_closetag(const char_type* str, _Found_proc& found_proc) {
+		const char_type* send = str + strlen(str);
+		std::wcmatch match;
+		std::regex_search(str, send, match, CLOSE_TAGW);
+		if (match.size() != 0) {
+			found_proc(remove_colon(match[1]), match[2]);
+			return true;
+		} else
+			return false;
 	}
 };
 
@@ -406,10 +466,33 @@ std::vector<attribute<_CharT> > parse_attrs(const _CharT* str, tag_handler<_Char
 }
 
 template<typename _CharT>
+struct tag_founder {
+	std::basic_string<_CharT> prefix;
+	std::basic_string<_CharT> name;
+	void operator()(const std::basic_string<_CharT>& _prefix,
+			const std::basic_string<_CharT>& _name) {
+		prefix = _prefix;
+		name = _name;
+	}
+};
+
+template<typename _CharT>
 bool parse_tag(const _CharT* str,
 		tag_handler<_CharT>* _handler) {
-
-	return true;
+	tag_founder<_CharT> _found_func;
+	if (xml_defs<_CharT>::find_tag(str,_found_func)) {
+		str += _found_func.prefix.length() + (_found_func.prefix.length() != 0 ? 1 : 0) + _found_func.name.length() + 1;
+		std::vector<attribute<_CharT>> attrs = parse_attrs(str, _handler);
+		_handler->start_element(_found_func.name.c_str(), _found_func.prefix.c_str(), attrs);
+		if (xml_defs<_CharT>::endswith(str, xml_defs<_CharT>::text(XC_CLOSE_LEAF))) {
+			_handler->end_element(_found_func.name.c_str(), _found_func.prefix.c_str());
+		}
+		return true;
+	} else if (xml_defs<_CharT>::find_closetag(str,_found_func)) {
+		_handler->end_element(_found_func.name.c_str(), _found_func.prefix.c_str());
+		return true;
+	}
+	return false;
 }
 
 template<typename _CharT>
@@ -506,8 +589,14 @@ bool read_tag(string_builder<_CharT,std::allocator<_CharT>> &builder,
 				in_comment = true;
 			else if (builder.endswith(xml_defs<_CharT>::text(XC_BEGIN_XML_DECL)))
 				in_xml = true;
-			else if (xml_defs<_CharT>::is_tag(builder.c_str()))
+			else if (xml_defs<_CharT>::is_tag(builder.c_str())) {
+				if (ch == *(xml_defs<_CharT>::text(XC_GT))) {
+					bool result = parse_tag(builder.c_str(), _handler);
+					builder.clear();
+					return result;
+				}
 				in_tag = true;
+			}
 		}
 	}
 	_handler->fatal_error(xml_parser_exception("Unexpected end of file."));
@@ -549,5 +638,5 @@ template <typename _CharT, class _Alloc>
 inline bool string_builder<_CharT, _Alloc>::endswith(const char_type* str) const {
 	size_t ls2 = xml_defs<char_type>::strlen(str);
 	if (length() < ls2) return false;
-	return xml_defs<char_type>::strcmp(_M_cur - ls2, str);
+	return xml_defs<char_type>::strcmp(_M_cur - ls2, str) == 0;
 }
