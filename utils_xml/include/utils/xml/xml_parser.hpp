@@ -57,15 +57,9 @@ public:
 
 	virtual void xml_decl(const char_type* version, const char_type* encoding, const char_type* standalone) = 0;
 
-	virtual void start_prefix_mapping (const char_type* prefix, const char_type* uri) = 0;
-
-	virtual void end_prefix_mapping (const char_type* prefix) = 0;
-
 	virtual void characters (const char_type* begin, const char_type* end) = 0;
 
 	virtual void comments (const char_type* begin, const char_type* end) = 0;
-
-	virtual void ignorable_whitespace (const char_type* ch, int start, int length) = 0;
 
 	virtual const char_type* entity (const char_type* name) = 0;
 

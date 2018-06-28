@@ -15,11 +15,17 @@ using namespace utils;
 using namespace utils::xml;
 
 
-char * xml1 = R"XML1DEM(<?xml version="1.0" encoding="UTF-8" ?>
+char xml1[] = R"XML1DEM(<?xml version="1.0" encoding="UTF-8" ?>
 <main>
+	<!--a comment here-->
 	<child-element atribute1="value of attribute1">
 		Some text &amp; entities
 	</child-element>
+	<a-leaf-tag/>
+	<a-leaf-tag with="attributes" />
+	<![CDATA[
+A cdata text with prohibited characters like > and < or &
+	]]>
 </main>
 )XML1DEM";
 
@@ -58,17 +64,13 @@ public:
 		cout << endl;
 	}
 
-	virtual void start_prefix_mapping (const char_type* prefix, const char_type* uri) {}
-
-	virtual void end_prefix_mapping (const char_type* prefix) {}
-
 	virtual void characters (const char_type* begin, const char_type* end) {
 		cout << "Characters " << begin << endl;
 	}
 
-	virtual void comments (const char_type* begin, const char_type* end) {}
-
-	virtual void ignorable_whitespace (const char_type* ch, int start, int length) {}
+	virtual void comments (const char_type* begin, const char_type* end) {
+		cout << "Comments '" << begin << "'"<< endl;
+	}
 
 	virtual const char_type* entity (const char_type* name) {
 		return "";
