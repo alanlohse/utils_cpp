@@ -1,0 +1,46 @@
+{
+    name: 'utils_xml',
+    description: 'A C++ utilities library for xml',
+    author: 'Alan N. Lohse',
+    source: 'https://github.com/alanlohse/utils_cpp',
+    version: '0.1.0',
+    type: 'static library',
+    dependencies: ['utils_cpp/0.1.0'],
+    includeDirs: ['./include'],
+    sources: ['./src/*.cpp'],
+    testSources: ['test_src/*.cpp'],
+    targets: [{
+            name: 'Debug',
+            arch: 'x64',
+            platform: 'win32',
+            toolchain: 'gcc',
+            includeDirs: [],
+            sources: [],
+            options: { optimization: 0, debug: 3, warnings: 'all', other: ' --std=c++14' },
+            defines: {
+                'DEBUG': ''
+            },
+            libraryPaths: [],
+            libraries: ['ws2_32'],
+            linkoptions: {}
+        },
+        {
+            name: 'Release',
+            arch: 'x64',
+            platform: 'win32',
+            toolchain: 'msvc14',
+            includeDirs: [],
+            sources: [],
+            options: { optimization: 3, debug: 0, warnings: 'all', other: '' },
+            defines: {},
+            libraryPaths: [],
+            libraries: [],
+            linkoptions: { debugInformation: false }
+        }
+    ],
+    package: {
+        name: 'utils_xml',
+        includes: ['./include'],
+        other: []
+    }
+}
