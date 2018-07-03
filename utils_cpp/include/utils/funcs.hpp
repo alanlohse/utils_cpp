@@ -305,7 +305,7 @@ struct null_mutex {
 };
 
 template <typename _Type, class _Predicate>
-void sync(_Type& ref, _Predicate& pred) {
+inline void sync(_Type& ref, _Predicate& pred) {
 	ref.mutex.lock();
 	try {
 		pred(ref);
