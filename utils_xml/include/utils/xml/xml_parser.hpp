@@ -71,6 +71,23 @@ public:
 
 };
 
+template<typename _CharT>
+class dtd_handler {
+public:
+
+	typedef _CharT char_type;
+
+	virtual ~dtd_handler () = default;
+
+	void	attribute_decl(const char_type* element_name, const char_type* attribute_name, const char_type* type, const char_type* mode, const char_type* value) = 0;
+
+	void	element_decl(const char_type* name, const char_type* model) = 0;
+
+	void	external_entity_decl(const char_type* name, const char_type* publicId, const char_type* systemId) = 0;
+
+	void	internal_entity_decl(const char_type* name, const char_type* value) = 0;
+
+};
 
 template<typename _CharT>
 class basic_xml_parser {
