@@ -13,6 +13,7 @@
 #include <utils/math/transforms/fft.hpp>
 #include <utils/math/statictics.hpp>
 #include <utils/random/basic_random.hpp>
+#include <utils/conversion.hpp>
 #include <iostream>
 #include <string>
 
@@ -371,11 +372,50 @@ public:
 
 };
 
+class Test_Conversion : public utils::test::TestCase {
+public:
+
+	Test_Conversion() {
+		ADD_TEST_FUNCTION(Test_Conversion, Test_Conversion::test_conversion);
+	}
+
+	virtual void prepare_test() { }
+	virtual void close_test() { }
+
+	template<typename _Int, typename _Str>
+	void test_to_string(_Int input,const _Str& expected) {
+		ostringstream s;
+		s << "Error converting '" << input << "' to string. Expected: '" << expected << "'";
+		ASSERT(to_string(input) == expected, s.str().c_str());
+	}
+
+	template<typename _Int, typename _Str>
+	void test_from_string(const _Str& input, _Int expected) {
+		ostringstream s;
+		s << "Error parsing from '" << input << "' to string. Expected: '" << expected << "'";
+		ASSERT(from_string<_Int>(input) == expected, s.str().c_str());
+	}
+
+	void test_conversion() {
+		test_to_string(1,"1");
+		test_to_string(1234567890123LL,"1234567890123");
+		test_to_string(1.234f,"1.234");
+		test_to_string(1.23456789,"1.23456789");
+		test_from_string("1",1);
+		test_from_string("1234567890123",1234567890123LL);
+		test_from_string("1.234",1.234f);
+		test_from_string("1.23456789",1.23456789);
+	}
+
+};
+
+
 
 void register_test_commons() {
 	ADD_TEST_CASE(Test_Random);
 	ADD_TEST_CASE(Test_giantint);
 	ADD_TEST_CASE(Test_decimal);
 	ADD_TEST_CASE(Test_FFT);
+	ADD_TEST_CASE(Test_Conversion);
 }
 

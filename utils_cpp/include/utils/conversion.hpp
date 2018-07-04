@@ -56,6 +56,11 @@ inline double from_string<double,std::string>(const std::string& str) {
 	return atof(str.c_str());
 }
 
+template <>
+inline bool from_string<bool,std::string>(const std::string& str) {
+	return str == "true" || str == "1";
+}
+
 typedef char* c_str_t;
 typedef wchar_t* wc_str_t;
 
@@ -92,6 +97,12 @@ inline double from_string<double,c_str_t>(const c_str_t& str) {
 	return atof(str);
 }
 
+template <>
+inline bool from_string<bool,c_str_t>(const c_str_t& str) {
+	return strcmp(str,"true") == 0 || strcmp(str,"1") == 0;
+}
+
+
 
 template <>
 inline int from_string<int,std::wstring>(const std::wstring& str) {
@@ -127,6 +138,11 @@ inline double from_string<double,std::wstring>(const std::wstring& str) {
 	return _wtof(str.c_str());
 }
 
+template <>
+inline bool from_string<bool,std::wstring>(const std::wstring& str) {
+	return str == L"true" || str == L"1";
+}
+
 
 template <>
 inline int from_string<int,wc_str_t>(const wc_str_t& str) {
@@ -160,6 +176,11 @@ inline float from_string<float,wc_str_t>(const wc_str_t& str) {
 template <>
 inline double from_string<double,wc_str_t>(const wc_str_t& str) {
 	return _wtof(str);
+}
+
+template <>
+inline bool from_string<bool,wc_str_t>(const wc_str_t& str) {
+	return wcscmp(str,L"true") == 0 || wcscmp(str,L"1") == 0;
 }
 
 
@@ -203,8 +224,62 @@ inline std::string to_string<float,std::string>(float val) {
 
 template <>
 inline std::string to_string<double,std::string>(double val) {
-	char buf[16];
+	char buf[24];
 	return std::string(gcvt(val,15,buf));
+}
+
+template <>
+inline std::string to_string<bool,std::string>(bool val) {
+	return std::string(val ? "true" : "false");
+}
+
+
+template <>
+inline std::wstring to_string<int,std::wstring>(int val) {
+	wchar_t buf[16];
+	return std::wstring(_itow(val,buf,10));
+}
+
+template <>
+inline std::wstring to_string<unsigned long int,std::wstring>(unsigned long int val) {
+	wchar_t buf[16];
+	return std::wstring(_ultow(val,buf,10));
+}
+
+template <>
+inline std::wstring to_string<__int64,std::wstring>(__int64 val) {
+	wchar_t buf[24];
+
+	return std::wstring(_i64tow(val,buf,10));
+}
+
+template <>
+inline std::wstring to_string<unsigned __int64,std::wstring>(unsigned __int64 val) {
+	wchar_t buf[24];
+	return std::wstring(_ui64tow(val,buf,10));
+}
+
+template <>
+inline std::wstring to_string<float,std::wstring>(float val) {
+	wchar_t buf[16];
+	char c_buf[16];
+	gcvt(val,7,c_buf);
+	mbstowcs(buf, c_buf, 16);
+	return std::wstring(buf);
+}
+
+template <>
+inline std::wstring to_string<double,std::wstring>(double val) {
+	wchar_t buf[24];
+	char c_buf[24];
+	gcvt(val,7,c_buf);
+	mbstowcs(buf, c_buf, 24);
+	return std::wstring(buf);
+}
+
+template <>
+inline std::wstring to_string<bool,std::wstring>(bool val) {
+	return std::wstring(val ? L"true" : L"false");
 }
 
 
