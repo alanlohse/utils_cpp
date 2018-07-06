@@ -6,6 +6,7 @@
  */
 
 #include <utils/xml/xml_parser.hpp>
+#include <utils/xml/xml_binding.hpp>
 #include <utils/test/test_tools.hpp>
 #include <iostream>
 #include <sstream>
@@ -99,13 +100,13 @@ class Test_Xml_parser : public utils::test::TestCase {
 public:
 
 	Test_Xml_parser() {
-		ADD_TEST_FUNCTION(Test_Xml_parser, Test_Xml_parser::test_random);
+		ADD_TEST_FUNCTION(Test_Xml_parser, Test_Xml_parser::test_parser);
 	}
 
 	virtual void prepare_test() { }
 	virtual void close_test() { }
 
-	void test_random() {
+	void test_parser() {
 
 		utils::xml::xml_parser parser;
 		membuf sbuf(xml1, xml1 + strlen(xml1));
@@ -113,6 +114,36 @@ public:
 		std::istream is(&sbuf);
 		Xml1Handler handler;
 		parser.parse(is, handler);
+
+	}
+
+};
+
+
+class A {
+private:
+	int a;
+public:
+	A(int _a): a(_a) { }
+	~A() { }
+	int get_a() const {return a;}
+	void set_a(int _a) { a = _a;}
+};
+
+
+class Test_Xml_binding : public utils::test::TestCase {
+public:
+
+	Test_Xml_binding() {
+		ADD_TEST_FUNCTION(Test_Xml_binding, Test_Xml_binding::test_reading);
+	}
+
+	virtual void prepare_test() { }
+	virtual void close_test() { }
+
+	void test_reading() {
+
+		utils::xml::xml_binding_attribute_field<int,A,char> field;
 
 	}
 

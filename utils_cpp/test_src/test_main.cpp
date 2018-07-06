@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
 //	ftest fc;
 //	utils::thread tb(fc);
 //	tb.start();
-	test_memory_pool();
-	test_memory_pool();
+//	test_memory_pool();
+//	test_memory_pool();
 
 //	cout << "Wating for other thread." << endl;
 //	tb.join();

@@ -382,18 +382,20 @@ public:
 	virtual void prepare_test() { }
 	virtual void close_test() { }
 
-	template<typename _Int, typename _Str>
-	void test_to_string(_Int input,const _Str& expected) {
+	template<typename _Int>
+	void test_to_string(_Int input,const std::string& expected) {
 		ostringstream s;
-		s << "Error converting '" << input << "' to string. Expected: '" << expected << "'";
-		ASSERT(to_string(input) == expected, s.str().c_str());
+		std::string out = utils::to_string<_Int,std::string>(input);
+		s << "Error converting '" << input << "' to string. Expected: '" << expected << "'" << " but '" << out << "' found.";
+		ASSERT(out == expected, s.str().c_str());
 	}
 
-	template<typename _Int, typename _Str>
-	void test_from_string(const _Str& input, _Int expected) {
+	template<typename _Int>
+	void test_from_string(const std::string& input, _Int expected) {
 		ostringstream s;
-		s << "Error parsing from '" << input << "' to string. Expected: '" << expected << "'";
-		ASSERT(from_string<_Int>(input) == expected, s.str().c_str());
+		_Int out = utils::from_string<_Int>(input);
+		s << "Error parsing from '" << input << "' to string. Expected: '" << expected << "'" << " but '" << out << "' found.";
+		ASSERT(out == expected, s.str().c_str());
 	}
 
 	void test_conversion() {
@@ -401,10 +403,10 @@ public:
 		test_to_string(1234567890123LL,"1234567890123");
 		test_to_string(1.234f,"1.234");
 		test_to_string(1.23456789,"1.23456789");
-		test_from_string("1",1);
-		test_from_string("1234567890123",1234567890123LL);
-		test_from_string("1.234",1.234f);
-		test_from_string("1.23456789",1.23456789);
+		test_from_string<int>("1",1);
+		test_from_string<__int64>("1234567890123",1234567890123LL);
+		test_from_string<float>("1.234",1.234f);
+		test_from_string<double>("1.23456789",1.23456789);
 	}
 
 };
