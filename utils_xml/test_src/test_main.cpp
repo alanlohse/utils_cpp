@@ -127,7 +127,13 @@ public:
 	A(int _a): a(_a) { }
 	~A() { }
 	int get_a() const {return a;}
-	void set_a(int _a) { a = _a;}
+	void set_a(const int& _a) { a = _a;}
+
+	static void map_xml() {
+		utils::xml::xml_binding_attribute_field<int,A,char,string> field("a","a",&A::a);
+		utils::xml::xml_binding_attribute_function<int,A,char,string> fieldgs("a","a",&A::get_a,&A::set_a);
+
+	}
 };
 
 
@@ -143,7 +149,6 @@ public:
 
 	void test_reading() {
 
-		utils::xml::xml_binding_attribute_field<int,A,char> field;
 
 	}
 

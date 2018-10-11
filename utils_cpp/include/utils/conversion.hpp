@@ -10,8 +10,8 @@
 
 #include <utils/utils_defs.hpp>
 #include <string>
-#include <cstdlib>
-#include <cstring>
+#include <stdlib.h>
+#include <string.h>
 
 namespace utils {
 
@@ -204,16 +204,43 @@ inline std::string to_string<unsigned long int,std::string>(unsigned long int va
 	return std::string(ultoa(val,buf,10));
 }
 
+inline char __Alphabet(int n) {
+	if (n >= 0 && n <= 9)
+		return ('0' + n);
+	else if (n <= 16)
+		return ('a' + n);
+	return 0;
+}
+
+template <typename _CharT, typename _IntType>
+inline _CharT* lltos(_IntType value, _CharT* buffer, int radix) {
+	_CharT       *p = buffer;
+    char            *q;
+    unsigned        rem;
+    char            buf[66];    // only holds ASCII so 'char' is OK
+
+    buf[0] = '\0';
+    q = &buf[1];
+    do {
+        rem = value % radix;
+        value = value / radix;
+        *q = __Alphabet(rem);
+        ++q;
+    } while( value );
+    while( (*p++ = (_CharT)( *--q )) != _CharT(0) );
+    return( buffer );
+}
+
 template <>
 inline std::string to_string<__int64,std::string>(__int64 val) {
 	char buf[24];
-	return std::string(lltoa(val,buf,10));
+	return std::string(lltos(val,buf,10));
 }
 
 template <>
 inline std::string to_string<unsigned __int64,std::string>(unsigned __int64 val) {
 	char buf[24];
-	return std::string(ulltoa(val,buf,10));
+	return std::string(lltos(val,buf,10));
 }
 
 template <>
@@ -250,13 +277,13 @@ template <>
 inline std::wstring to_string<__int64,std::wstring>(__int64 val) {
 	wchar_t buf[24];
 
-	return std::wstring(_i64tow(val,buf,10));
+	return std::wstring(lltos(val,buf,10));
 }
 
 template <>
 inline std::wstring to_string<unsigned __int64,std::wstring>(unsigned __int64 val) {
 	wchar_t buf[24];
-	return std::wstring(_ui64tow(val,buf,10));
+	return std::wstring(lltos(val,buf,10));
 }
 
 template <>
