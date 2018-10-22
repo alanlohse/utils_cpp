@@ -1,6 +1,6 @@
 {
     name: 'utils_cpp',
-    description: 'A simple hello world executable',
+    description: 'A C++ utilities library',
     author: 'Alan N. Lohse',
     source: 'https://github.com/alanlohse/utils_cpp',
     version: '0.1.0',

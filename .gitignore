@@ -40,3 +40,4 @@ build/*
 .pydevproject
 .cproject
 .project
+/utils_xml/build
