@@ -309,6 +309,93 @@ inline std::wstring to_string<bool,std::wstring>(bool val) {
 	return std::wstring(val ? L"true" : L"false");
 }
 
+/**
+ * Converts from a value of the input type into a string
+ */
+template <typename _InputType, typename _CharT>
+inline const _CharT* to_string(_InputType val, _CharT* dest, size_t max_len) {
+	return dest;
+}
+
+template <>
+inline const char* to_string<int,char>(int val, char* dest, size_t max_len) {
+	return itoa(val,dest,10);
+}
+
+template <>
+inline const char* to_string<unsigned long int,char>(unsigned long int val, char* dest, size_t max_len) {
+	return ultoa(val,dest,10);
+}
+
+template <>
+inline const char* to_string<__int64,char>(__int64 val, char* dest, size_t max_len) {
+	return lltos(val,dest,10);
+}
+
+template <>
+inline const char* to_string<unsigned __int64,char>(unsigned __int64 val, char* dest, size_t max_len) {
+	char buf[24];
+	return (lltos(val,buf,10));
+}
+
+template <>
+inline const char* to_string<float,char>(float val, char* dest, size_t max_len) {
+	char buf[16];
+	return (gcvt(val,7,buf));
+}
+
+template <>
+inline const char* to_string<double,char>(double val, char* dest, size_t max_len) {
+	char buf[24];
+	return (gcvt(val,15,buf));
+}
+
+template <>
+inline const char* to_string<bool,char>(bool val, char* dest, size_t max_len) {
+	return (val ? "true" : "false");
+}
+
+
+template <>
+inline const wchar_t* to_string<int,wchar_t>(int val, wchar_t* dest, size_t max_len) {
+	return _itow(val,dest,10);
+}
+
+template <>
+inline const wchar_t* to_string<unsigned long int,wchar_t>(unsigned long int val, wchar_t* dest, size_t max_len) {
+	return _ultow(val,dest,10);
+}
+
+template <>
+inline const wchar_t* to_string<__int64,wchar_t>(__int64 val, wchar_t* dest, size_t max_len) {
+	return lltos(val,dest,10);
+}
+
+template <>
+inline const wchar_t* to_string<unsigned __int64,wchar_t>(unsigned __int64 val, wchar_t* dest, size_t max_len) {
+	return lltos(val,dest,10);
+}
+
+template <>
+inline const wchar_t* to_string<float,wchar_t>(float val, wchar_t* dest, size_t max_len) {
+	char c_buf[16];
+	gcvt(val,7,c_buf);
+	mbstowcs(dest, c_buf, 16);
+	return dest;
+}
+
+template <>
+inline const wchar_t* to_string<double,wchar_t>(double val, wchar_t* dest, size_t max_len) {
+	char c_buf[24];
+	gcvt(val,7,c_buf);
+	mbstowcs(dest, c_buf, 24);
+	return dest;
+}
+
+template <>
+inline const wchar_t* to_string<bool,wchar_t>(bool val, wchar_t* dest, size_t max_len) {
+	return wcsncpy(dest, val ? L"true" : L"false", max_len);
+}
 
 } // namespace utils
 

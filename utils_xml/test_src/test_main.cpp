@@ -130,9 +130,9 @@ public:
 	void set_a(const int& _a) { a = _a;}
 
 	static void map_xml() {
-		utils::xml::xml_binding_attribute_field<int,A,char,string> field("a","a",&A::a);
-		utils::xml::xml_binding_attribute_function<int,A,char,string> fieldgs("a","a",&A::get_a,&A::set_a);
-
+		utils::xml::xml_binding_attribute_field<int,A> field("a","a",&A::a);
+		utils::xml::xml_binding_attribute_function<int,A> fieldgs("a","a",&A::get_a,&A::set_a);
+		ADD_ELEMENT("asd","asd",int,A,(&A::a));
 	}
 };
 
