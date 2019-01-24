@@ -16,6 +16,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 #include <new>
 
 namespace utils {
@@ -166,17 +167,46 @@ private:
 		}
 	};
 
+	struct heap_group {
+		memory_slot* begin;
+		memory_slot* cur;
+		memory_slot* end;
+		heap_group(memory_slot* _begin, memory_slot* _end) :
+			begin(_begin), cur(_begin),
+			end(_end){
+		}
+		heap_group(const heap_group& o) :
+			begin(o.begin), cur(o.cur),
+			end(o.end){
+		}
+		memory_slot* next() {
+			if (cur < end)
+				return cur++;
+			return NULL;
+		}
+		bool hasNext() {
+			return cur < end;
+		}
+		bool is_in(void* mem) const {
+			char* mem_c = (char*) mem;
+			return mem_c >= reinterpret_cast<const char*>(begin)
+					&& mem_c < reinterpret_cast<const char*>(end);
+		}
+	};
+
 	memory_slot** free_slots;
 	memory_map big_slots;
 	mutex_type mutex;
 	growth_policy_type growth_policy;
 	malloc_type mem_alloc;
+	std::unordered_map<size_t,std::vector<heap_group>> heap_groups;
 
 	memory_pool() :
 		big_slots(),
 		mutex(),
 		growth_policy(),
-		mem_alloc() {
+		mem_alloc(),
+		heap_groups() {
 		free_slots = new memory_slot*[growth_policy.get_fragmentation_slot_count()];
 		for (size_t i = 0; i < growth_policy.get_fragmentation_slot_count(); i++) {
 			free_slots[i] = NULL;
@@ -185,11 +215,24 @@ private:
 	memory_slot* alloc_slot(size_t size, memory_slot* next) {
 		size_t effc_size = size + sizeof(memory_slot);
 		if (growth_policy.can_alloc(effc_size)) {
-			void* m = ::malloc(effc_size);
-			if (m) {
-				growth_policy.add_mem(effc_size);
-				return ::new (m) memory_slot(next);
+			auto it = heap_groups.find(effc_size);
+			void* m = NULL;
+			if (it != heap_groups.end()) {
+				m = (void*) (*it).second.back().next();
 			}
+			if (m == NULL) {
+				size_t alloc_size = MAX(effc_size * (131072 / effc_size), effc_size);
+				memory_slot* slots = (memory_slot*) ::malloc(alloc_size);
+				heap_group hg = heap_group(slots, slots + (alloc_size / effc_size));
+				m = (void*) hg.next();
+				if (it != heap_groups.end()) {
+					(*it).second.push_back(hg);
+				} else {
+					heap_groups[effc_size] = std::vector<heap_group>({ hg });
+				}
+			}
+			growth_policy.add_mem(effc_size);
+			return ::new (m) memory_slot(next);
 		}
 		return NULL;
 	}
